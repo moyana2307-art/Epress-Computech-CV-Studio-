@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Keep the example environment file in Git, but never a real .env
+!.env.example
+
+# Private generated documents (client data must never be committed)
+backend/storage/documents/*
+!backend/storage/documents/.gitkeep
