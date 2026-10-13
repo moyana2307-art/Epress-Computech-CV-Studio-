@@ -7,6 +7,10 @@
 
 const mysql = require('mysql2/promise');
 
+// Hosted MySQL providers (Aiven, TiDB Cloud, PlanetScale, ...) require an
+// encrypted connection. Set DB_SSL=true in the environment to turn TLS on.
+const sslEnabled = String(process.env.DB_SSL || '').toLowerCase() === 'true';
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT) || 3306,
@@ -16,6 +20,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 
 // Simple helper so other files can check that the database is reachable.
