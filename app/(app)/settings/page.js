@@ -181,7 +181,7 @@ CLAUDE_API_KEY=your-claude-key`}
             Notes
           </h2>
           <ul className="list-disc pl-5 text-sm text-slate-600">
-            <li>Generated PDFs are stored privately in backend/storage/documents.</li>
+            <li>Generated PDFs are stored privately in the database.</li>
             <li>Client data lives in the MySQL database “epress_cv_studio”.</li>
             <li>API keys and passwords never leave the backend.</li>
           </ul>

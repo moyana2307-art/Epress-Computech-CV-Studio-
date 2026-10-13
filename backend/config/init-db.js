@@ -52,6 +52,7 @@ const statements = [
      template        VARCHAR(60) NOT NULL DEFAULT 'modern',
      title           VARCHAR(200),
      content_json    LONGTEXT,
+     pdf_data        MEDIUMBLOB,
      file_path       VARCHAR(255),
      current_version INT NOT NULL DEFAULT 1,
      created_by      INT,
@@ -67,6 +68,7 @@ const statements = [
      document_id    INT NOT NULL,
      version_number INT NOT NULL,
      content_json   LONGTEXT,
+     pdf_data       MEDIUMBLOB,
      file_path      VARCHAR(255),
      created_by     INT,
      created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +77,22 @@ const statements = [
        FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
+
+// Add a column only if it is missing. "ADD COLUMN IF NOT EXISTS" is not
+// portable across MySQL versions, so we check information_schema first.
+async function ensureColumn(connection, dbName, table, column, definition) {
+  const [rows] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = ? AND column_name = ?`,
+    [dbName, table, column]
+  );
+  if (rows[0].count === 0) {
+    await connection.query(
+      `ALTER TABLE \`${table}\` ADD COLUMN ${column} ${definition}`
+    );
+    console.log(`Added missing column ${table}.${column}`);
+  }
+}
 
 async function main() {
   const dbName = process.env.DB_NAME || 'epress_cv_studio';
@@ -105,6 +123,10 @@ async function main() {
     for (const sql of statements) {
       await connection.query(sql);
     }
+
+    // Databases created before PDFs moved into MySQL need pdf_data added.
+    await ensureColumn(connection, dbName, 'documents', 'pdf_data', 'MEDIUMBLOB');
+    await ensureColumn(connection, dbName, 'document_versions', 'pdf_data', 'MEDIUMBLOB');
 
     console.log(`Database "${dbName}" is ready.`);
     console.log('Tables: staff, clients, documents, document_versions');
