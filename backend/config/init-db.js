@@ -78,6 +78,7 @@ const statements = [
 
 async function main() {
   const dbName = process.env.DB_NAME || 'epress_cv_studio';
+  const sslEnabled = String(process.env.DB_SSL || '').toLowerCase() === 'true';
 
   // First connect WITHOUT a database, so we can create it if needed.
   const connection = await mysql.createConnection({
@@ -86,12 +87,19 @@ async function main() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     multipleStatements: false,
+    ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
   try {
-    await connection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4`
-    );
+    try {
+      await connection.query(
+        `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4`
+      );
+    } catch (error) {
+      // Some managed providers (Aiven, TiDB Cloud) do not let you create
+      // databases; the database already exists from their dashboard.
+      console.warn(`Skipping CREATE DATABASE: ${error.message}`);
+    }
     await connection.query(`USE \`${dbName}\``);
 
     for (const sql of statements) {
